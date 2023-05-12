@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"github.com/nann-e-backend/config"
+	"github.com/nann-e-backend/server"
+)
 
 func main() {
-	fmt.Println("Hello")
+	cfg := config.Cfg
+	s := server.NewService(cfg)
+	s.Start()
 }
