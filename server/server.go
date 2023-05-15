@@ -1,12 +1,14 @@
 package server
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/nann-e-backend/api/handler"
 	"github.com/nann-e-backend/api/usecase"
@@ -14,6 +16,7 @@ import (
 	database "github.com/nann-e-backend/pkgs/db"
 	"github.com/nann-e-backend/server/middleware"
 	ai "github.com/nann-e-backend/store/AI"
+	gpt "github.com/nann-e-backend/store/GPT"
 )
 
 type Server struct {
@@ -45,19 +48,22 @@ func (s *Server) Register() {
 
 	// MYSQL
 	dbConn := database.NewDatabaseConnection(*s.cfg)
+	fmt.Println(dbConn)
 	if dbConn == nil {
 		log.Fatal("Expecting DB connection but received nil")
 	}
 
 	db = dbConn.DBConnect()
+	fmt.Println(db)
 	if db == nil {
 		log.Fatal("Expecting DB connection but received nil")
 	}
 
 	ai := ai.NewAi(db)
+	gpt := gpt.NewGpt("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")
 
 	// Register service
-	s.usecase = usecase.NewUsecase(ai)
+	s.usecase = usecase.NewUsecase(ai, gpt)
 
 	// Register handler
 	s.handler = handler.NewHandler(s.usecase)
@@ -77,18 +83,27 @@ func NewService(cfg *config.Config) *Server {
 }
 
 func (s Server) Start() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
 	http.Handle("/api/register", middleware.ErrHandler(s.handler.Register))
+	http.Handle("/api/chat", middleware.ErrHandler(s.handler.Chat))
 
+	srv := http.Server{Addr: addr}
 	go func() {
-		err := http.ListenAndServe(addr, nil)
+		err := srv.ListenAndServe()
 		if err != nil {
 			log.Fatalf("error listening to address %v, err=%v", addr, err)
 		}
 	}()
 
-	sig := <-signalChan
-	log.Fatalf("%s signal caught", sig)
+	select {
+	case <-signalChan:
+		log.Fatal("Signal received. Shutting down...")
+	}
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Could not gracefully shutdown the server: %v\n", err)
+	}
 
 	// Doing cleanup if received signal from Operating System.
 	err := db.Close()

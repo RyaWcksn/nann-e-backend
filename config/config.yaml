@@ -1,0 +1,14 @@
+app:
+  env: "dev"
+  app_name: "dev"
+  log_level: "debug"
+  secret: "thisissecret"
+server:
+  http_address: "9000"
+database:
+  host: "192.168.123.30:3306"
+  username: "root"
+  password: "aya"
+  database: "nanne"
+  max_idle: 10
+  max_open: 10

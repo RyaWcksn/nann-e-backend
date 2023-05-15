@@ -12,6 +12,8 @@ type RegisterResponse struct {
 }
 
 type ChatRequest struct {
+	Id      int
+	Name    string
 	Message string `json:"message"`
 }
 

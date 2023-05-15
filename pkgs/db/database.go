@@ -2,6 +2,7 @@ package database
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -22,11 +23,12 @@ func (db *Connection) DBConnect() *sql.DB {
 	dbConn, errConn := sql.Open(
 		"mysql", db.MYSQL.Database.Username+":"+db.MYSQL.Database.Password+"@tcp("+db.MYSQL.Database.Host+")/"+db.MYSQL.Database.Database,
 	)
+	fmt.Println(errConn)
 	if errConn != nil {
-		panic(errConn)
 		return nil
 	}
 	for dbConn.Ping() != nil {
+		fmt.Println("Retrying...")
 		time.Sleep(5 * time.Second)
 	}
 	dbConn.SetMaxIdleConns(db.MYSQL.Database.MaxIdleConn)
