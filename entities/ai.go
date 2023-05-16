@@ -20,3 +20,10 @@ type GetDataEntityResp struct {
 type GetChatEntityResp struct {
 	Chat string
 }
+
+type GetAiDatas struct {
+	Name string
+	Age  string
+	Role string
+	Chat string
+}

@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"github.com/nann-e-backend/dtos"
 	"github.com/nann-e-backend/entities"
 	"github.com/sashabaranov/go-openai"
 )
@@ -10,6 +11,7 @@ type IAi interface {
 	GetData(id int, name string) (resp *entities.GetDataEntityResp, err error)
 	GetChat(id int, name string) (resp *entities.GetChatEntityResp, err error)
 	SaveChat(id int, name string, chat string) error
+	GetAiDatas(payload dtos.DashboardPayload) (resp *entities.GetAiDatas, err error)
 }
 
 type IGpt interface {

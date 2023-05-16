@@ -1,24 +1,30 @@
 package usecase
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/nann-e-backend/api/interfaces"
 	"github.com/nann-e-backend/dtos"
 	"github.com/nann-e-backend/entities"
+	"github.com/nann-e-backend/pkgs/utils"
 	"github.com/sashabaranov/go-openai"
 )
 
 type IUsecase interface {
 	Register(r dtos.RegisterRequest) (resp *dtos.RegisterResponse, err error)
 	Chat(r dtos.ChatRequest) (resp *dtos.ChatResponse, err error)
+	GetData(r dtos.DashboardParameter) (resp *entities.GetAiDatas, err error)
+	GenerateUrl(r dtos.GenerateLinkRequest) (resp *dtos.GenerateLinkResponse, err error)
 }
 
 type UseCase struct {
 	AI  interfaces.IAi
 	GPT interfaces.IGpt
 }
+
+
 
 func NewUsecase(a interfaces.IAi, g interfaces.IGpt) *UseCase {
 	return &UseCase{
@@ -33,7 +39,7 @@ func (u UseCase) Register(r dtos.RegisterRequest) (resp *dtos.RegisterResponse, 
 	}
 	data, err := u.AI.Register(payload)
 	if err != nil {
-		log.Fatalf("err := %v", err)
+		log.Printf("Err := %v", err)
 		return nil, err
 	}
 	resp = &dtos.RegisterResponse{
@@ -46,12 +52,12 @@ func (u UseCase) Register(r dtos.RegisterRequest) (resp *dtos.RegisterResponse, 
 func (u UseCase) Chat(r dtos.ChatRequest) (resp *dtos.ChatResponse, err error) {
 	data, err := u.AI.GetData(r.Id, r.Name)
 	if err != nil {
-		log.Fatalf("Err := %v", err)
+		log.Printf("Err := %v", err)
 		return nil, err
 	}
 	oldChat, err := u.AI.GetChat(r.Id, r.Name)
 	if err != nil {
-		log.Fatalf("Err := %v", err)
+		log.Printf("Err := %v", err)
 		return nil, err
 	}
 
@@ -99,7 +105,7 @@ Generate follow up chat with this message %s
 	fmt.Println("Masuk sini ga")
 	res, err := u.GPT.GenerateChat(message)
 	if err != nil {
-		log.Fatalf("Err := %v", err)
+		log.Printf("Err := %v", err)
 		return nil, err
 	}
 	fmt.Println("Masuk sini ga")
@@ -115,7 +121,7 @@ please bautify the text, paragraph or anything that %s years old kid can underst
 	}
 	folChat, err := u.GPT.FollowUpChat(message)
 	if err != nil {
-		log.Fatalf("Err := %v", err)
+		log.Printf("Err := %v", err)
 		return nil, err
 	}
 
@@ -124,7 +130,7 @@ please bautify the text, paragraph or anything that %s years old kid can underst
 	newChat := fmt.Sprintf("%s, %s", oldChat.Chat, folChat.Choices[0].Message.Content)
 	err = u.AI.SaveChat(r.Id, r.Name, newChat)
 	if err != nil {
-		log.Fatalf("Err := %v", err)
+		log.Printf("Err := %v", err)
 		return nil, err
 	}
 
@@ -133,4 +139,39 @@ please bautify the text, paragraph or anything that %s years old kid can underst
 	}
 	return resp, err
 
+}
+
+func (u UseCase) GetData(r dtos.DashboardParameter) (resp *entities.GetAiDatas, err error) {
+
+	var payload dtos.DashboardPayload
+	decrypt := utils.Decrypt(r.Hash)
+	fmt.Println(decrypt)
+	err = json.Unmarshal([]byte(decrypt), &payload)
+	if err != nil {
+		log.Printf("Err := %v", err.Error())
+		return nil, err
+	}
+	data, err := u.AI.GetAiDatas(payload)
+	if err != nil {
+		log.Printf("Err := %v", err.Error())
+		return nil, err
+	}
+
+	resp = &entities.GetAiDatas{
+		Name: data.Name,
+		Age: data.Age,
+		Role: data.Role,
+		Chat: data.Chat,
+	}
+
+	return resp, nil
+}
+
+func (u UseCase) GenerateUrl(r dtos.GenerateLinkRequest) (resp *dtos.GenerateLinkResponse, err error) {
+	generateJson := fmt.Sprintf(`{"id":%d,"name":"%s"}`, r.Id, r.Name)
+	url := utils.Encrypt(generateJson)
+	resp = &dtos.GenerateLinkResponse{
+		Link: url,
+	}
+	return resp, nil
 }

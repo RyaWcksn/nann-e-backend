@@ -22,6 +22,19 @@ type ChatResponse struct {
 }
 
 type DashboardParameter struct {
-	Id   int
-	Name string
+	Hash string `json:"hash"`
+}
+
+type DashboardPayload struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+type GenerateLinkRequest struct {
+	Id   int `json:"id"`
+	Name string `json:"name"`
+}
+
+type GenerateLinkResponse struct {
+	Link string `json:"link"`
 }

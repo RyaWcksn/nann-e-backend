@@ -60,13 +60,13 @@ func (s *Server) Register() {
 	}
 
 	ai := ai.NewAi(db)
-	gpt := gpt.NewGpt("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")
+	gpt := gpt.NewGpt(s.cfg.App.API)
 
 	// Register service
 	s.usecase = usecase.NewUsecase(ai, gpt)
 
 	// Register handler
-	s.handler = handler.NewHandler(s.usecase)
+	s.handler = handler.NewHandler(s.usecase, *s.cfg)
 }
 
 func NewService(cfg *config.Config) *Server {
@@ -88,6 +88,8 @@ func (s Server) Start() {
 
 	http.Handle("/api/register", middleware.ErrHandler(s.handler.Register))
 	http.Handle("/api/chat", middleware.ErrHandler(s.handler.Chat))
+	http.Handle("/api/dashboard", middleware.ErrHandler(s.handler.GetData))
+	http.Handle("/api/generate", middleware.ErrHandler(s.handler.GenerateUrl))
 
 	srv := http.Server{Addr: addr}
 	go func() {

@@ -16,6 +16,8 @@ type Config struct {
 		APPNAME  string `mapstructure:"app_name"`
 		LOGLEVEL string `mapstructure:"log_level"`
 		SECRET   string `mapstructure:"secret"`
+		API      string `mapstructure:"api_key"`
+		WEB      string `mapstructure:"web"`
 	} `mapstructure:"app"`
 	Server struct {
 		HTTPAddress string `mapstructure:"http_address"`
