@@ -4,11 +4,11 @@ app:
   log_level: "debug"
   secret: "thisissecret"
   api_key: "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"
-  web: "http://localhost:5179/dashboard"
+  web: "http://localhost:5173/dashboard"
 server:
   http_address: "9000"
 database:
-  host: "192.168.123.30:3306"
+  host: "127.0.0.1:3306"
   username: "root"
   password: "aya"
   database: "nanne"

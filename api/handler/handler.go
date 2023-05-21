@@ -2,10 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/nann-e-backend/api/usecase"
 	"github.com/nann-e-backend/config"
@@ -56,8 +56,6 @@ func (h Handler) GenerateUrl(w http.ResponseWriter, r *http.Request) (_ error) {
 
 }
 
-
-
 func NewHandler(u usecase.IUsecase, cfg config.Config) *Handler {
 	return &Handler{
 		UC:  u,
@@ -96,8 +94,10 @@ func (h Handler) Register(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (h Handler) Chat(w http.ResponseWriter, r *http.Request) error {
-	id := r.Header.Get("id")
-	name := r.Header.Get("name")
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
 	payload := dtos.ChatRequest{}
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -106,9 +106,6 @@ func (h Handler) Chat(w http.ResponseWriter, r *http.Request) error {
 	}
 	if err := json.Unmarshal(body, &payload); err != nil {
 	}
-	dataID, _ := strconv.Atoi(id)
-	payload.Id = dataID
-	payload.Name = name
 	data, err := h.UC.Chat(payload)
 	if err != nil {
 		log.Printf("Err := %v", err)
@@ -125,6 +122,7 @@ func (h Handler) GetData(w http.ResponseWriter, r *http.Request) error {
 	var payload dtos.DashboardParameter
 
 	body, err := io.ReadAll(r.Body)
+	fmt.Println(string(body))
 	if err != nil {
 		log.Printf("Err := %v", err)
 
@@ -132,6 +130,7 @@ func (h Handler) GetData(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	if err := json.Unmarshal(body, &payload); err != nil {
+		log.Printf("Err := %v", err)
 		return err
 	}
 

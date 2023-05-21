@@ -1,15 +1,14 @@
 package server
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/nann-e-backend/api/handler"
 	"github.com/nann-e-backend/api/usecase"
 	"github.com/nann-e-backend/config"
@@ -17,6 +16,7 @@ import (
 	"github.com/nann-e-backend/server/middleware"
 	ai "github.com/nann-e-backend/store/AI"
 	gpt "github.com/nann-e-backend/store/GPT"
+	"github.com/rs/cors"
 )
 
 type Server struct {
@@ -83,33 +83,39 @@ func NewService(cfg *config.Config) *Server {
 }
 
 func (s Server) Start() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
-	http.Handle("/api/register", middleware.ErrHandler(s.handler.Register))
-	http.Handle("/api/chat", middleware.ErrHandler(s.handler.Chat))
-	http.Handle("/api/dashboard", middleware.ErrHandler(s.handler.GetData))
-	http.Handle("/api/generate", middleware.ErrHandler(s.handler.GenerateUrl))
+	r := mux.NewRouter()
 
-	srv := http.Server{Addr: addr}
-	go func() {
-		err := srv.ListenAndServe()
-		if err != nil {
-			log.Fatalf("error listening to address %v, err=%v", addr, err)
-		}
-	}()
+	corsMiddleware := cors.AllowAll()
 
-	select {
-	case <-signalChan:
-		log.Fatal("Signal received. Shutting down...")
-	}
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Could not gracefully shutdown the server: %v\n", err)
+	r.Handle("/api/register", middleware.ErrHandler(s.handler.Register))
+	r.Handle("/api/chat", middleware.ErrHandler(s.handler.Chat)).Methods(http.MethodPost)
+	r.Handle("/api/dashboard", middleware.ErrHandler(s.handler.GetData))
+	r.Handle("/api/generate", middleware.ErrHandler(s.handler.GenerateUrl))
+
+	corsHandler := corsMiddleware.Handler(r)
+
+	err := http.ListenAndServe(":9000", corsHandler)
+	if err != nil {
+		log.Fatalf("error listening to address %v, err=%v", addr, err)
 	}
 
-	// Doing cleanup if received signal from Operating System.
-	err := db.Close()
+	err = db.Close()
 	if err != nil {
 		log.Fatalf("Error in closing DB connection. Err : %+v", err.Error())
 	}
+}
+
+func accessControlMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS,PUT")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type")
+
+		if r.Method == "OPTIONS" {
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }

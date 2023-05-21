@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -13,6 +14,10 @@ type xerr struct {
 type ErrHandler func(http.ResponseWriter, *http.Request) error
 
 func (fn ErrHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
+	fmt.Println("Masuk sini ga")
 	defer func() {
 		if err := recover(); err != nil {
 			xerr := xerr{

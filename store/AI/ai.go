@@ -2,6 +2,7 @@ package ai
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
 	"github.com/nann-e-backend/dtos"
@@ -44,6 +45,7 @@ func (a AIImpl) Register(r entities.RegisterEntity) (resp *entities.RegisterEnti
 
 func (a AIImpl) GetData(id int, name string) (resp *entities.GetDataEntityResp, err error) {
 	res := &entities.GetDataEntityResp{}
+	fmt.Println(id, name)
 	err = a.DB.QueryRow("SELECT name, age, role FROM ai WHERE id = ? AND name = ?", id, name).Scan(&res.Name, &res.Age, &res.Role)
 	if err != nil {
 		log.Printf("Err := %v", err)
