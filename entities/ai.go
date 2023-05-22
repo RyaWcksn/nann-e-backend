@@ -12,9 +12,10 @@ type RegisterEntityResponse struct {
 }
 
 type GetDataEntityResp struct {
-	Name string
-	Age  string
-	Role string
+	Name    string
+	Age     string
+	Gender  string
+	NanneId int
 }
 
 type GetChatEntityResp struct {
@@ -22,8 +23,19 @@ type GetChatEntityResp struct {
 }
 
 type GetAiDatas struct {
-	Name string
-	Age  string
-	Role string
-	Chat string
+	Id    int
+	Name  string
+	Age   string
+	Nanne string
+	Chat  []Chat
+}
+
+type Chat struct {
+	Message string
+	IsUser  string
+}
+
+type AiData struct {
+	Name        string
+	Description string
 }

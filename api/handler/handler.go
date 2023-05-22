@@ -144,7 +144,7 @@ func (h Handler) GetData(w http.ResponseWriter, r *http.Request) error {
 	resp := entities.GetAiDatas{
 		Name: data.Name,
 		Age:  data.Age,
-		Role: data.Role,
+		Nanne: data.Nanne,
 		Chat: data.Chat,
 	}
 

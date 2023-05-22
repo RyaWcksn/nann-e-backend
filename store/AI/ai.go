@@ -20,17 +20,28 @@ func NewAi(DB *sql.DB) *AIImpl {
 }
 
 func (a AIImpl) Register(r entities.RegisterEntity) (resp *entities.RegisterEntityResponse, err error) {
-	stmt, err := a.DB.Prepare("INSERT INTO ai (name, role, age, chat) VALUES (?, ?, ?, ?)")
+	fmt.Println(r)
+	stmt, err := a.DB.Prepare("INSERT INTO ai (name, gender, age, nanneId) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
-	query, err := stmt.Exec(r.Request.Name, r.Request.Role, r.Request.Age, "Initial message")
+	query, err := stmt.Exec(r.Request.Name, r.Request.Gender, r.Request.Age, r.Request.NanneId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
 	id, err := query.LastInsertId()
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	stmt2, err := a.DB.Prepare("INSERT INTO chat (userId, nanneId, message, isUser) VALUES (?, ?, ?, ?)")
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	_, err = stmt2.Exec(id, r.Request.NanneId, "Hello, how can i help you today?", "no")
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
@@ -46,7 +57,7 @@ func (a AIImpl) Register(r entities.RegisterEntity) (resp *entities.RegisterEnti
 func (a AIImpl) GetData(id int, name string) (resp *entities.GetDataEntityResp, err error) {
 	res := &entities.GetDataEntityResp{}
 	fmt.Println(id, name)
-	err = a.DB.QueryRow("SELECT name, age, role FROM ai WHERE id = ? AND name = ?", id, name).Scan(&res.Name, &res.Age, &res.Role)
+	err = a.DB.QueryRow("SELECT name, age, gender, nanneId FROM ai WHERE id = ? AND name = ?", id, name).Scan(&res.Name, &res.Age, &res.Gender, &res.NanneId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
@@ -55,9 +66,9 @@ func (a AIImpl) GetData(id int, name string) (resp *entities.GetDataEntityResp, 
 	return res, nil
 }
 
-func (a AIImpl) GetChat(id int, name string) (resp *entities.GetChatEntityResp, err error) {
+func (a AIImpl) GetChat(id int, name string, isUser string) (resp *entities.GetChatEntityResp, err error) {
 	res := &entities.GetChatEntityResp{}
-	err = a.DB.QueryRow("SELECT chat FROM ai WHERE id = ? AND name = ?", id, name).Scan(&res.Chat)
+	err = a.DB.QueryRow("SELECT message FROM chat WHERE userId = ? AND isUser = ? ORDER BY createdAt DESC", id, isUser).Scan(&res.Chat)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
@@ -67,8 +78,8 @@ func (a AIImpl) GetChat(id int, name string) (resp *entities.GetChatEntityResp, 
 }
 
 // Save chat.
-func (a AIImpl) SaveChat(id int, name string, chat string) error {
-	update, err := a.DB.Exec("UPDATE ai SET chat = ? WHERE id = ? AND name = ?", chat, id, name)
+func (a AIImpl) SaveChat(id int, nanneId int, name string, chat string, isUser string) error {
+	update, err := a.DB.Exec("INSERT into chat (userId, nanneId, message, isUser) values (?, ?, ?, ?)", id, nanneId, chat, isUser)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return err
@@ -83,11 +94,56 @@ func (a AIImpl) SaveChat(id int, name string, chat string) error {
 
 func (a AIImpl) GetAiDatas(payload dtos.DashboardPayload) (resp *entities.GetAiDatas, err error) {
 	res := &entities.GetAiDatas{}
-	err = a.DB.QueryRow("SELECT name, age, role, chat FROM ai WHERE id = ? AND name = ?", payload.Id, payload.Name).Scan(&res.Name, &res.Age, &res.Role, &res.Chat)
+	var nanneId int
+	err = a.DB.QueryRow("SELECT id, name, age, nanneId FROM ai WHERE id = ? AND name = ?", payload.Id, payload.Name).Scan(&res.Id, &res.Name, &res.Age, &nanneId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
+	var nanneName string
+	err = a.DB.QueryRow("SELECT name FROM nanne WHERE id = ? ", nanneId).Scan(&nanneName)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
 
+	}
+	err = a.DB.QueryRow("SELECT name FROM nanne WHERE id = ? ", nanneId).Scan(&nanneName)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+
+	}
+	var chats []entities.Chat
+	rows, err := a.DB.Query("SELECT message, isUser FROM chat WHERE userId = ? AND nanneId = ?", payload.Id, nanneId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+
+	}
+
+	for rows.Next() {
+		var chat entities.Chat
+		err = rows.Scan(&chat.Message, &chat.IsUser)
+		if err != nil {
+			log.Printf("Err := %v", err)
+			return nil, err
+
+		}
+		chats = append(chats, chat)
+	}
+
+	res.Nanne = nanneName
+	res.Chat = chats
+
+	return res, nil
+}
+
+func (a AIImpl) GetAiInfo(nanneId int) (resp *entities.AiData, err error) {
+	res := &entities.AiData{}
+	err = a.DB.QueryRow("SELECT name, description FROM nanne where id = ?", nanneId).Scan(&res.Name, &res.Description)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
 	return res, nil
 }

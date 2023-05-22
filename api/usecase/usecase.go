@@ -24,8 +24,6 @@ type UseCase struct {
 	GPT interfaces.IGpt
 }
 
-
-
 func NewUsecase(a interfaces.IAi, g interfaces.IGpt) *UseCase {
 	return &UseCase{
 		AI:  a,
@@ -50,18 +48,30 @@ func (u UseCase) Register(r dtos.RegisterRequest) (resp *dtos.RegisterResponse, 
 }
 
 func (u UseCase) Chat(r dtos.ChatRequest) (resp *dtos.ChatResponse, err error) {
+
 	data, err := u.AI.GetData(r.Id, r.Name)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
-	oldChat, err := u.AI.GetChat(r.Id, r.Name)
+	err = u.AI.SaveChat(r.Id, data.NanneId, r.Name, r.Message, "yes")
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	oldChat, err := u.AI.GetChat(r.Id, r.Name, "no")
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	aiData, err := u.AI.GetAiInfo(data.NanneId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
 
-	initiateContent := fmt.Sprintf(`
+	var initiateContent string
+	initiateContent = fmt.Sprintf(`
 I want you to take the role as %s your name will be %s. 
 You have to following this set of rules:
 
@@ -84,16 +94,27 @@ Random fact : [Short fact that related to %s topic and can easily understand by 
 By using old chat like this %s
 
 Generate follow up chat with this message %s
-`, data.Role,
-		data.Name,
-		data.Role,
+`, aiData.Description,
+		aiData.Name,
+		aiData.Description,
 		data.Age,
-		data.Role,
-		data.Role,
+		aiData.Description,
+		data.Age,
 		data.Age,
 		oldChat.Chat,
 		r.Message,
 	)
+
+	fmt.Println(oldChat.Chat)
+	if oldChat.Chat != "Hello, how can i help you today?" {
+		initiateContent = fmt.Sprintf(`
+		remember this you're %s
+		and your personal is %s
+		think of best solution to answer this message %s, that can %s year old kid easily understand
+		you can add question or trivia if the message is unique, from that, please act like %s, and don't forget
+		last conversation was this %s make sure it's aligned
+		`,aiData.Name, aiData.Description, r.Message, data.Age, aiData.Description, oldChat.Chat)
+	}
 
 	message := []openai.ChatCompletionMessage{
 		{
@@ -127,8 +148,8 @@ please bautify the text, paragraph or anything that %s years old kid can underst
 
 	fmt.Println(folChat.Choices[0].Message.Content)
 
-	newChat := fmt.Sprintf("%s, %s", oldChat.Chat, folChat.Choices[0].Message.Content)
-	err = u.AI.SaveChat(r.Id, r.Name, newChat)
+	newChat := folChat.Choices[0].Message.Content
+	err = u.AI.SaveChat(r.Id, data.NanneId, r.Name, newChat, "no")
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
@@ -158,10 +179,11 @@ func (u UseCase) GetData(r dtos.DashboardParameter) (resp *entities.GetAiDatas, 
 	}
 
 	resp = &entities.GetAiDatas{
-		Name: data.Name,
-		Age: data.Age,
-		Role: data.Role,
-		Chat: data.Chat,
+		Id:    data.Id,
+		Name:  data.Name,
+		Age:   data.Age,
+		Nanne: data.Nanne,
+		Chat:  data.Chat,
 	}
 
 	return resp, nil

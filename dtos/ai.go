@@ -1,9 +1,11 @@
 package dtos
 
+// ffjson: RegisterRequest
 type RegisterRequest struct {
-	Name string `json:"name"`
-	Role string `json:"role"`
-	Age  string `json:"age"`
+	Name    string `json:"name"`
+	Gender  string `json:"gender"`
+	Age     string `json:"age"`
+	NanneId int    `json:"nanneId"`
 }
 
 type RegisterResponse struct {
@@ -31,7 +33,7 @@ type DashboardPayload struct {
 }
 
 type GenerateLinkRequest struct {
-	Id   int `json:"id"`
+	Id   int    `json:"id"`
 	Name string `json:"name"`
 }
 

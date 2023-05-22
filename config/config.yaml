@@ -11,6 +11,6 @@ database:
   host: "127.0.0.1:3306"
   username: "root"
   password: "aya"
-  database: "nanne"
+  database: "ai"
   max_idle: 10
   max_open: 10
