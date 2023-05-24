@@ -45,5 +45,6 @@ func (g *GptImpl) FollowUpChat(message []openai.ChatCompletionMessage) (res *ope
 		log.Printf("Err := %v from OPENAI", err)
 		return nil, err
 	}
+
 	return &resp, err
 }

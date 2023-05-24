@@ -1,6 +1,10 @@
 package entities
 
-import "github.com/nann-e-backend/dtos"
+import (
+	"time"
+
+	"github.com/nann-e-backend/dtos"
+)
 
 type RegisterEntity struct {
 	Request dtos.RegisterRequest
@@ -19,7 +23,8 @@ type GetDataEntityResp struct {
 }
 
 type GetChatEntityResp struct {
-	Chat string
+	Chat      string
+	CreatedAt time.Time
 }
 
 type GetAiDatas struct {
@@ -31,8 +36,9 @@ type GetAiDatas struct {
 }
 
 type Chat struct {
-	Message string
-	IsUser  string
+	Message   string
+	IsUser    string
+	CreatedAt time.Time
 }
 
 type AiData struct {

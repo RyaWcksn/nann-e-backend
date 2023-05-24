@@ -68,7 +68,7 @@ func (a AIImpl) GetData(id int, name string) (resp *entities.GetDataEntityResp, 
 
 func (a AIImpl) GetChat(id int, name string, isUser string) (resp *entities.GetChatEntityResp, err error) {
 	res := &entities.GetChatEntityResp{}
-	err = a.DB.QueryRow("SELECT message FROM chat WHERE userId = ? AND isUser = ? ORDER BY createdAt DESC", id, isUser).Scan(&res.Chat)
+	err = a.DB.QueryRow("SELECT message, createdAt FROM chat WHERE userId = ? AND isUser = ? ORDER BY createdAt DESC", id, isUser).Scan(&res.Chat, &res.CreatedAt)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err

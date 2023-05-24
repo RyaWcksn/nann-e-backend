@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/nann-e-backend/api/interfaces"
 	"github.com/nann-e-backend/dtos"
@@ -70,6 +71,10 @@ func (u UseCase) Chat(r dtos.ChatRequest) (resp *dtos.ChatResponse, err error) {
 		return nil, err
 	}
 
+	if time.Now().Day() > oldChat.CreatedAt.Day() {
+		// Create new session
+	}
+
 	var initiateContent string
 	initiateContent = fmt.Sprintf(`
 I want you to take the role as %s your name will be %s. 
@@ -113,7 +118,7 @@ Generate follow up chat with this message %s
 		think of best solution to answer this message %s, that can %s year old kid easily understand
 		you can add question or trivia if the message is unique, from that, please act like %s, and don't forget
 		last conversation was this %s make sure it's aligned
-		`,aiData.Name, aiData.Description, r.Message, data.Age, aiData.Description, oldChat.Chat)
+		`, aiData.Name, aiData.Description, r.Message, data.Age, aiData.Description, oldChat.Chat)
 	}
 
 	message := []openai.ChatCompletionMessage{
