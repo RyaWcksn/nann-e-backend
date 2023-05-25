@@ -45,3 +45,16 @@ type AiData struct {
 	Name        string
 	Description string
 }
+type Sessions struct {
+	Id        string       `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	LastChat  time.Time `json:"lastChat"`
+	Chats     []Chats   `json:"chats"`
+}
+
+type Chats struct {
+	Id        int       `json:"id"`
+	Message   string    `json:"message"`
+	IsUser    string    `json:"isUser"`
+	CreatedAt time.Time `json:"createdAt"`
+}

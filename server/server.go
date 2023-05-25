@@ -92,6 +92,9 @@ func (s Server) Start() {
 	r.Handle("/api/chat", middleware.ErrHandler(s.handler.Chat)).Methods(http.MethodPost)
 	r.Handle("/api/dashboard", middleware.ErrHandler(s.handler.GetData))
 	r.Handle("/api/generate", middleware.ErrHandler(s.handler.GenerateUrl))
+	r.Handle("/api/session", middleware.ErrHandler(s.handler.GenerateSession))
+	r.Handle("/api/getSession", middleware.ErrHandler(s.handler.GetSession))
+	r.Handle("/api/getSessionById", middleware.ErrHandler(s.handler.GetChatBySession))
 
 	corsHandler := corsMiddleware.Handler(r)
 

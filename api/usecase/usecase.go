@@ -18,11 +18,42 @@ type IUsecase interface {
 	Chat(r dtos.ChatRequest) (resp *dtos.ChatResponse, err error)
 	GetData(r dtos.DashboardParameter) (resp *entities.GetAiDatas, err error)
 	GenerateUrl(r dtos.GenerateLinkRequest) (resp *dtos.GenerateLinkResponse, err error)
+	GenerateSession(userId int) (resp string, err error)
+	GetSession(userId int) (resp *[]entities.Sessions, err error)
+	GetSessionBySessionId(sessionId string) (resp *entities.Sessions, err error)
 }
 
 type UseCase struct {
 	AI  interfaces.IAi
 	GPT interfaces.IGpt
+}
+
+func (usecase *UseCase) GetSessionBySessionId(sessionId string) (resp *entities.Sessions, err error) {
+	chats, err := usecase.AI.GetChatBySessionId(sessionId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	return chats, nil
+}
+
+
+func (usecase *UseCase) GetSession(userId int) (resp *[]entities.Sessions, err error) {
+	sessions, err := usecase.AI.GetSession(userId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	return sessions, nil
+}
+
+func (usecase *UseCase) GenerateSession(userId int) (resp string, err error) {
+	uuid, err := usecase.AI.CreateSession(userId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return "", err
+	}
+	return uuid, nil
 }
 
 func NewUsecase(a interfaces.IAi, g interfaces.IGpt) *UseCase {
@@ -55,12 +86,12 @@ func (u UseCase) Chat(r dtos.ChatRequest) (resp *dtos.ChatResponse, err error) {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
-	err = u.AI.SaveChat(r.Id, data.NanneId, r.Name, r.Message, "yes")
+	err = u.AI.SaveChat(r.Id, data.NanneId, r.Name, r.Message, "yes", r.SessionId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
-	oldChat, err := u.AI.GetChat(r.Id, r.Name, "no")
+	oldChat, err := u.AI.GetChat(r.Id, r.Name, "no", r.SessionId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
@@ -128,13 +159,11 @@ Generate follow up chat with this message %s
 		},
 	}
 
-	fmt.Println("Masuk sini ga")
 	res, err := u.GPT.GenerateChat(message)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
-	fmt.Println("Masuk sini ga")
 	followUpChat := fmt.Sprintf(`from this chat %s
 please bautify the text, paragraph or anything that %s years old kid can understand
 `, res.Choices[0].Message.Content, data.Age)
@@ -151,10 +180,8 @@ please bautify the text, paragraph or anything that %s years old kid can underst
 		return nil, err
 	}
 
-	fmt.Println(folChat.Choices[0].Message.Content)
-
 	newChat := folChat.Choices[0].Message.Content
-	err = u.AI.SaveChat(r.Id, data.NanneId, r.Name, newChat, "no")
+	err = u.AI.SaveChat(r.Id, data.NanneId, r.Name, newChat, "no", r.SessionId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err

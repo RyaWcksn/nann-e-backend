@@ -18,11 +18,97 @@ type IHandler interface {
 	Chat(w http.ResponseWriter, r *http.Request) error
 	GetData(w http.ResponseWriter, r *http.Request) error
 	GenerateUrl(w http.ResponseWriter, r *http.Request) error
+	GenerateSession(w http.ResponseWriter, r *http.Request) error
+	GetSession(w http.ResponseWriter, r *http.Request) error
+	GetChatBySession(w http.ResponseWriter, r *http.Request) error
+}
+
+type ChatSessionPayload struct {
+	SessionId string `json:"sessionId"`
+}
+
+type SessionPayload struct {
+	UserId int `json:"userId"`
+}
+
+type GetSessionPayload struct {
+	UserId int `json:"userId"`
 }
 
 type Handler struct {
 	UC  usecase.IUsecase
 	cfg config.Config
+}
+
+func (handler *Handler) GetChatBySession(w http.ResponseWriter, r *http.Request) error {
+	var payload ChatSessionPayload
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return err
+	}
+
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return err
+	}
+	chats, err := handler.UC.GetSessionBySessionId(payload.SessionId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return err
+	}
+	resp := entities.Sessions{
+		Id:        chats.Id,
+		CreatedAt: chats.CreatedAt,
+		LastChat:  chats.LastChat,
+		Chats:     chats.Chats,
+	}
+	w.Header().Set("Content-Type", "Application/json")
+	return json.NewEncoder(w).Encode(resp)
+}
+
+func (handler *Handler) GetSession(w http.ResponseWriter, r *http.Request) error {
+	var payload GetSessionPayload
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Err := %v", err)
+
+		return err
+	}
+
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return err
+	}
+
+	sessions, err := handler.UC.GetSession(payload.UserId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+
+		return err
+	}
+	fmt.Println("Masuk sini ga si")
+	fmt.Println(sessions)
+
+	var resp dtos.SessionResponse
+	resp.Sessions = make([]dtos.Sessions, len(*sessions))
+	for i, session := range *sessions {
+		resp.Sessions[i] = dtos.Sessions{
+			Id:        session.Id,
+			CreatedAt: session.CreatedAt,
+			LastChat:  session.LastChat,
+		}
+		resp.Sessions[i].Chats = make([]dtos.Chats, len(session.Chats))
+		for _, chat := range session.Chats {
+			resp.Sessions[i].Chats[i] = dtos.Chats{
+				Id:        chat.Id,
+				Message:   chat.Message,
+				IsUser:    chat.IsUser,
+				CreatedAt: chat.CreatedAt,
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "Application/json")
+	return json.NewEncoder(w).Encode(resp)
 }
 
 func (h Handler) GenerateUrl(w http.ResponseWriter, r *http.Request) (_ error) {
@@ -105,6 +191,8 @@ func (h Handler) Chat(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 	if err := json.Unmarshal(body, &payload); err != nil {
+		log.Printf("Err := %v", err)
+		return err
 	}
 	data, err := h.UC.Chat(payload)
 	if err != nil {
@@ -137,17 +225,40 @@ func (h Handler) GetData(w http.ResponseWriter, r *http.Request) error {
 	data, err := h.UC.GetData(payload)
 	if err != nil {
 		log.Printf("Err := %v", err)
-
 		return err
 	}
 
 	resp := entities.GetAiDatas{
-		Name: data.Name,
-		Age:  data.Age,
+		Name:  data.Name,
+		Age:   data.Age,
 		Nanne: data.Nanne,
-		Chat: data.Chat,
+		Chat:  data.Chat,
 	}
 
+	w.Header().Set("Content-Type", "Application/json")
+	return json.NewEncoder(w).Encode(resp)
+}
+
+func (handler *Handler) GenerateSession(w http.ResponseWriter, r *http.Request) error {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return err
+	}
+	payload := SessionPayload{}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		log.Printf("Err := %v", err)
+		return err
+	}
+
+	uuid, err := handler.UC.GenerateSession(payload.UserId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return err
+	}
+	resp := dtos.GenerateSessionResponse{
+		SessionId: uuid,
+	}
 	w.Header().Set("Content-Type", "Application/json")
 	return json.NewEncoder(w).Encode(resp)
 }

@@ -1,9 +1,12 @@
 package ai
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/nann-e-backend/dtos"
 	"github.com/nann-e-backend/entities"
@@ -19,8 +22,116 @@ func NewAi(DB *sql.DB) *AIImpl {
 	}
 }
 
+func (aiimpl *AIImpl) GetChatBySessionId(sessionId string) (resp *entities.Sessions, err error) {
+	var chats []entities.Chats
+	rows, err := aiimpl.DB.Query(`SELECT id, message, isUser, createdAt FROM chat where sessionId = ?`, sessionId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	for rows.Next() {
+		var chat entities.Chats
+		var createdAtRaw []uint8
+		err = rows.Scan(&chat.Id, &chat.Message, &chat.IsUser, &createdAtRaw)
+		if err != nil {
+			log.Printf("Err := %v", err)
+			return nil, err
+		}
+		chat.CreatedAt, err = time.Parse("2006-01-02 15:04:05", string(createdAtRaw))
+		if err != nil {
+			log.Printf("Err := %v", err)
+			return nil, err
+		}
+		chats = append(chats, chat)
+	}
+	var sCATR []uint8
+	err = aiimpl.DB.QueryRow(`select createdAt from session where id = ?`, sessionId).Scan(&sCATR)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	CreatedAt, err := time.Parse("2006-01-02 15:04:05", string(sCATR))
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+	res := entities.Sessions{
+		Id: sessionId,
+		CreatedAt: CreatedAt,
+		LastChat: chats[len(chats)-1].CreatedAt,
+		Chats: chats,
+	}
+	return &res, nil
+
+}
+
+func (aiimpl *AIImpl) GetSession(userId int) (resp *[]entities.Sessions, err error) {
+	var sessions []entities.Sessions
+
+	rows, err := aiimpl.DB.Query(`SELECT id, createdAt FROM session WHERE userId = ?`, userId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		var session entities.Sessions
+		var sessionCreatedRaw []uint8
+		err = rows.Scan(&session.Id, &sessionCreatedRaw)
+		if err != nil {
+			log.Printf("Err := %v", err)
+			return nil, err
+		}
+
+		session.CreatedAt, err = time.Parse("2006-01-02 15:04:05", string(sessionCreatedRaw))
+		if err != nil {
+			log.Printf("Err := %v", err)
+			return nil, err
+		}
+
+		sessions = append(sessions, session)
+	}
+	return &sessions, nil
+}
+
+func randString() (string, error) {
+	// Generate a random byte slice of 16 bytes (128 bits)
+	randomBytes := make([]byte, 16)
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		fmt.Println("Failed to generate random string:", err)
+		return "", nil
+	}
+
+	// Convert the byte slice to a hex string
+	randomString := hex.EncodeToString(randomBytes)
+
+	// Insert dashes every 8 characters
+	finalString := randomString[:8] + "-" + randomString[8:16] + "-" + randomString[16:24] + "-" + randomString[24:]
+	return finalString, nil
+
+}
+
+func (a *AIImpl) CreateSession(userId int) (id string, err error) {
+	stmt, err := a.DB.Prepare("INSERT INTO session (id, userId) VALUES (?, ?)")
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return "", err
+	}
+	uuid, err := randString()
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return "", err
+	}
+	_, err = stmt.Exec(uuid, userId)
+	if err != nil {
+		log.Printf("Err := %v", err)
+		return "", err
+	}
+	return uuid, nil
+}
+
 func (a AIImpl) Register(r entities.RegisterEntity) (resp *entities.RegisterEntityResponse, err error) {
-	fmt.Println(r)
 	stmt, err := a.DB.Prepare("INSERT INTO ai (name, gender, age, nanneId) VALUES (?, ?, ?, ?)")
 	if err != nil {
 		log.Printf("Err := %v", err)
@@ -66,20 +177,26 @@ func (a AIImpl) GetData(id int, name string) (resp *entities.GetDataEntityResp, 
 	return res, nil
 }
 
-func (a AIImpl) GetChat(id int, name string, isUser string) (resp *entities.GetChatEntityResp, err error) {
+func (a AIImpl) GetChat(id int, name string, isUser string, sessionId string) (resp *entities.GetChatEntityResp, err error) {
 	res := &entities.GetChatEntityResp{}
-	err = a.DB.QueryRow("SELECT message, createdAt FROM chat WHERE userId = ? AND isUser = ? ORDER BY createdAt DESC", id, isUser).Scan(&res.Chat, &res.CreatedAt)
+	var createdAtRaw []uint8
+	err = a.DB.QueryRow("SELECT message, createdAt FROM chat WHERE userId = ? AND isUser = ? AND sessionId = ? OR sessionId IS NULL ORDER BY createdAt DESC", id, isUser, sessionId).Scan(&res.Chat, &createdAtRaw)
+	fmt.Println("Masuk")
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
-
+	// Convert createdAtRaw ([]uint8) to time.Time
+	createdAtStr := string(createdAtRaw)
+	res.CreatedAt, err = time.Parse("2006-01-02 15:04:05", createdAtStr)
+	fmt.Println("Masuk gasie")
+	fmt.Println(res)
 	return res, nil
 }
 
 // Save chat.
-func (a AIImpl) SaveChat(id int, nanneId int, name string, chat string, isUser string) error {
-	update, err := a.DB.Exec("INSERT into chat (userId, nanneId, message, isUser) values (?, ?, ?, ?)", id, nanneId, chat, isUser)
+func (a AIImpl) SaveChat(id int, nanneId int, name string, chat string, isUser string, sessionId string) error {
+	update, err := a.DB.Exec("INSERT into chat (userId, nanneId, message, isUser, sessionId) values (?, ?, ?, ?, ?)", id, nanneId, chat, isUser, sessionId)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return err

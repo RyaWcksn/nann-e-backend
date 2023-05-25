@@ -1,5 +1,7 @@
 package dtos
 
+import "time"
+
 // ffjson: RegisterRequest
 type RegisterRequest struct {
 	Name    string `json:"name"`
@@ -14,9 +16,10 @@ type RegisterResponse struct {
 }
 
 type ChatRequest struct {
-	Id      int    `json:"id"`
-	Name    string `json:"name"`
-	Message string `json:"message"`
+	Id        int    `json:"id"`
+	Name      string `json:"name"`
+	SessionId string `json:"sessionId"`
+	Message   string `json:"message"`
 }
 
 type ChatResponse struct {
@@ -39,4 +42,26 @@ type GenerateLinkRequest struct {
 
 type GenerateLinkResponse struct {
 	Link string `json:"link"`
+}
+
+type GenerateSessionResponse struct {
+	SessionId string `json:"sessionId"`
+}
+
+type SessionResponse struct {
+	Sessions []Sessions `json:"sessions"`
+}
+
+type Sessions struct {
+	Id        string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	LastChat  time.Time `json:"lastChat"`
+	Chats     []Chats   `json:"chats"`
+}
+
+type Chats struct {
+	Id        int       `json:"id"`
+	Message   string    `json:"message"`
+	IsUser    string    `json:"isUser"`
+	CreatedAt time.Time `json:"createdAt"`
 }

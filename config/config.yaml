@@ -3,7 +3,7 @@ app:
   app_name: "dev"
   log_level: "debug"
   secret: "thisissecret"
-  api_key: "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"
+  api_key: "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"
   web: "http://localhost:5173/dashboard"
 server:
   http_address: "9000"

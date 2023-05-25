@@ -19,6 +19,7 @@ func NewGpt(APIKEY string) *GptImpl {
 }
 
 func (g *GptImpl) GenerateChat(message []openai.ChatCompletionMessage) (res *openai.ChatCompletionResponse, err error) {
+	log.Println("Initiate")
 	resp, err := g.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -34,6 +35,7 @@ func (g *GptImpl) GenerateChat(message []openai.ChatCompletionMessage) (res *ope
 }
 
 func (g *GptImpl) FollowUpChat(message []openai.ChatCompletionMessage) (res *openai.ChatCompletionResponse, err error) {
+	log.Println("Follow up chat")
 	resp, err := g.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
