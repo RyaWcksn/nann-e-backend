@@ -28,11 +28,15 @@ type ChatResponse struct {
 
 type DashboardParameter struct {
 	Hash string `json:"hash"`
+	Page int `json:"page"`
+	Limit int `json:"limit"`
 }
 
 type DashboardPayload struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Id     int    `json:"id"`
+	Name   string `json:"name"`
+	Limit  int    `json:"limit"`
+	Page int    `json:"page"`
 }
 
 type GenerateLinkRequest struct {

@@ -28,11 +28,13 @@ type GetChatEntityResp struct {
 }
 
 type GetAiDatas struct {
-	Id    int
-	Name  string
-	Age   string
-	Nanne string
-	Chat  []Chat
+	Id       int
+	Name     string
+	Age      string
+	Gender   string
+	Nanne    string
+	PageList int
+	Sessions []Sessions
 }
 
 type Chat struct {
@@ -46,7 +48,7 @@ type AiData struct {
 	Description string
 }
 type Sessions struct {
-	Id        string       `json:"id"`
+	Id        string    `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	LastChat  time.Time `json:"lastChat"`
 	Chats     []Chats   `json:"chats"`

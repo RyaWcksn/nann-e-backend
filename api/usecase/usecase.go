@@ -30,13 +30,14 @@ type UseCase struct {
 
 func (usecase *UseCase) GetSessionBySessionId(sessionId string) (resp *entities.Sessions, err error) {
 	chats, err := usecase.AI.GetChatBySessionId(sessionId)
+	fmt.Println("ERROR ", err)
 	if err != nil {
 		log.Printf("Err := %v", err)
 		return nil, err
 	}
+	fmt.Println("Masuk sini ga si")
 	return chats, nil
 }
-
 
 func (usecase *UseCase) GetSession(userId int) (resp *[]entities.Sessions, err error) {
 	sessions, err := usecase.AI.GetSession(userId)
@@ -141,7 +142,6 @@ Generate follow up chat with this message %s
 		r.Message,
 	)
 
-	fmt.Println(oldChat.Chat)
 	if oldChat.Chat != "Hello, how can i help you today?" {
 		initiateContent = fmt.Sprintf(`
 		remember this you're %s
@@ -198,12 +198,13 @@ func (u UseCase) GetData(r dtos.DashboardParameter) (resp *entities.GetAiDatas, 
 
 	var payload dtos.DashboardPayload
 	decrypt := utils.Decrypt(r.Hash)
-	fmt.Println(decrypt)
 	err = json.Unmarshal([]byte(decrypt), &payload)
 	if err != nil {
 		log.Printf("Err := %v", err.Error())
 		return nil, err
 	}
+	payload.Limit = r.Limit
+	payload.Page = r.Page
 	data, err := u.AI.GetAiDatas(payload)
 	if err != nil {
 		log.Printf("Err := %v", err.Error())
@@ -211,11 +212,13 @@ func (u UseCase) GetData(r dtos.DashboardParameter) (resp *entities.GetAiDatas, 
 	}
 
 	resp = &entities.GetAiDatas{
-		Id:    data.Id,
-		Name:  data.Name,
-		Age:   data.Age,
-		Nanne: data.Nanne,
-		Chat:  data.Chat,
+		Id:       data.Id,
+		Name:     data.Name,
+		Age:      data.Age,
+		Nanne:    data.Nanne,
+		Gender:   data.Gender,
+		PageList: data.PageList,
+		Sessions: data.Sessions,
 	}
 
 	return resp, nil

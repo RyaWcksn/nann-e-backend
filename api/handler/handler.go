@@ -2,10 +2,10 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/nann-e-backend/api/usecase"
 	"github.com/nann-e-backend/config"
@@ -85,8 +85,6 @@ func (handler *Handler) GetSession(w http.ResponseWriter, r *http.Request) error
 
 		return err
 	}
-	fmt.Println("Masuk sini ga si")
-	fmt.Println(sessions)
 
 	var resp dtos.SessionResponse
 	resp.Sessions = make([]dtos.Sessions, len(*sessions))
@@ -209,18 +207,15 @@ func (h Handler) Chat(w http.ResponseWriter, r *http.Request) error {
 func (h Handler) GetData(w http.ResponseWriter, r *http.Request) error {
 	var payload dtos.DashboardParameter
 
-	body, err := io.ReadAll(r.Body)
-	fmt.Println(string(body))
-	if err != nil {
-		log.Printf("Err := %v", err)
+	hash := r.URL.Query().Get("hash")
+	page := r.URL.Query().Get("page")
+	limit := r.URL.Query().Get("limit")
+	pageint, _ := strconv.Atoi(page)
+	limitint, _ := strconv.Atoi(limit)
 
-		return err
-	}
-
-	if err := json.Unmarshal(body, &payload); err != nil {
-		log.Printf("Err := %v", err)
-		return err
-	}
+	payload.Hash = hash
+	payload.Limit = limitint
+	payload.Page = pageint
 
 	data, err := h.UC.GetData(payload)
 	if err != nil {
@@ -229,10 +224,13 @@ func (h Handler) GetData(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	resp := entities.GetAiDatas{
-		Name:  data.Name,
-		Age:   data.Age,
-		Nanne: data.Nanne,
-		Chat:  data.Chat,
+		Id:       data.Id,
+		Name:     data.Name,
+		Age:      data.Age,
+		Nanne:    data.Nanne,
+		Gender:   data.Gender,
+		PageList: data.PageList,
+		Sessions: data.Sessions,
 	}
 
 	w.Header().Set("Content-Type", "Application/json")
